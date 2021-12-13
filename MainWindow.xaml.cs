@@ -20,9 +20,38 @@ namespace Cyclic_Ping_Your_HDD
     /// </summary>
     public partial class MainWindow : Window
     {
+        private WindowState previewState;
+
         public MainWindow()
         {
             InitializeComponent();
+
+            StateChanged += Window_StateChanged;
+
+            //Hide();
+        }
+
+        private void Window_StateChanged(object sender, EventArgs e)
+        {
+            if (WindowState == WindowState.Minimized)
+            {
+                Hide();
+            }
+            else
+            {
+                previewState = WindowState;
+            }
+        }
+
+        private void TaskbarIcon_TrayLeftMouseDown(object sender, RoutedEventArgs e)
+        {
+            Show();
+            WindowState = previewState;
+        }
+
+        private void SavePathButton_Click(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }
