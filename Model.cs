@@ -9,54 +9,89 @@ namespace Cyclic_Ping_Your_HDD
 {
     public class Model
     {
-        private readonly string fromSettingsFileProperty = "ToPingFolderPath=";
-        private readonly string fromSettingsFileDefaultValue = "ping.txt";
-        private readonly string toSettingsFilePath = "settings.txt";
+        private readonly string settingsFileProperty = @"ToPingFilePath=";
+        private readonly string settingsFileDefaultValue = @"ping.txt";
+        private readonly string toSettingsFilePath = @"settings.txt";
         
         private StreamReader streamReader;
         private StreamWriter streamWriter;
 
         public Model()
         {
-            bool isUsingFromSettingsFilePath = false;
-            bool settingsFileExist = File.Exists(toSettingsFilePath);
-
-            if (settingsFileExist)
-            {
-                streamReader = new StreamReader(toSettingsFilePath);
-                
-                string fromSettingsFilePath;
-                string settingsFileFirstLine = streamReader.ReadLine();
-                if (settingsFileFirstLine.IndexOf(fromSettingsFileProperty) == 0)
-                {
-                    fromSettingsFilePath = settingsFileFirstLine.Replace(fromSettingsFileProperty, "");
-
-                    if (Directory.Exists(fromSettingsFilePath))
-                        isUsingFromSettingsFilePath = true;
-                }
-            }
-
-            if (!settingsFileExist || !isUsingFromSettingsFilePath)
-            {
-                CreatingFile(toSettingsFilePath);
-                WriteLineToFile(fromSettingsFileDefaultValue, fromSettingsFileProperty + fromSettingsFileDefaultValue);
-            }
-
-
-
+            SetToPingFilePath();
         }
+        
+        public bool IsPingRunning { get; private set; } = false;
 
-        public string ToPingFolderPath { get; private set; }
+        public string ToPingFilePath { get; private set; }
 
         public bool IsFileCreatingError { get; private set; } = false;
 
         public bool IsFileWritingError { get; private set; } = false;
 
+        public bool IsFileReadingError { get; private set; } = false;
+
+        public void ToogleWritingState()
+        {
+
+        }
+
+        private void SetToPingFilePath ()
+        {
+            bool settingsFileExist = File.Exists(toSettingsFilePath);
+            bool isValueFromSettingsFileValid = false;
+
+            if (settingsFileExist)
+            {
+                string settingsFileFirstLine = ReadLineFromFile(toSettingsFilePath);
+                string settingsFileValue;
+
+                if (settingsFileFirstLine.IndexOf(settingsFileProperty) == 0)
+                {
+                    settingsFileValue = settingsFileFirstLine.Replace(settingsFileProperty, "");
+                    int indexOfFileName = IndexOfFileName(settingsFileValue);
+
+                    if (indexOfFileName >= 0 && Directory.Exists(settingsFileValue[..indexOfFileName]))
+                    {
+                        isValueFromSettingsFileValid = true;
+                        ToPingFilePath = settingsFileValue;
+                    }
+                }
+            }
+
+            if (!settingsFileExist || !isValueFromSettingsFileValid)
+            {
+                ToPingFilePath = settingsFileDefaultValue;
+
+                CreatingFile(toSettingsFilePath);
+                WriteLineToFile(toSettingsFilePath, settingsFileProperty + settingsFileDefaultValue);
+            }
+
+            int IndexOfFileName(string toFilePath)
+            {
+                int indexOfLastDot = toFilePath.LastIndexOf(".");
+                int indexOfLastBackSlash = toFilePath.LastIndexOf(@"\");
+
+                if (indexOfLastDot > indexOfLastBackSlash && indexOfLastBackSlash >= 0)
+                {
+                    return indexOfLastBackSlash + 1;
+                }
+                else if (indexOfLastDot > indexOfLastBackSlash && indexOfLastBackSlash < 0)
+                {
+                    return 0;
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+        }
+
         private void CreatingFile(string toFilePath)
         {
             try
             {
-                File.CreateText(toFilePath);
+                using (var stream = File.Create(toFilePath)) { };
             }
             catch (IOException e)
             {
@@ -77,8 +112,29 @@ namespace Cyclic_Ping_Your_HDD
             }
             finally
             {
-                streamWriter.Close();
+                streamWriter?.Dispose();
             }
+        }
+
+        private string ReadLineFromFile(string toFilePath)
+        {
+            string textLine = String.Empty;
+
+            try
+            {
+                streamReader = new StreamReader(toFilePath);
+                textLine = streamReader.ReadLine();
+            }
+            catch (IOException e)
+            {
+                IsFileReadingError = true;
+            }
+            finally
+            {
+                streamReader?.Dispose();
+            }
+
+            return textLine;
         }
     }
 }

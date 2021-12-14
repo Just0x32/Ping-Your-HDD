@@ -33,6 +33,8 @@ namespace Cyclic_Ping_Your_HDD
             StateChanged += Window_StateChanged;
 
             //Hide();
+
+            MessageBox.Show(viewModel.DebugMessage);        // Debug
         }
 
         private void Window_StateChanged(object sender, EventArgs e)

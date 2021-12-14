@@ -14,5 +14,26 @@ namespace Cyclic_Ping_Your_HDD
         {
              model = new Model();
         }
+
+
+
+        public string ToPingFilePath { get => model.ToPingFilePath; }
+
+        public bool IsFileCreatingError { get => model.IsFileCreatingError; }
+
+        public bool IsFileWritingError { get => model.IsFileWritingError; }
+
+        public bool IsFileReadingError { get => model.IsFileReadingError; }
+
+        public string DebugMessage          // Debug
+        {
+            get
+            {
+                return "ToPingFilePath: " + ToPingFilePath + Environment.NewLine +
+                    "IsFileCreatingError: " + IsFileCreatingError.ToString() + Environment.NewLine +
+                    "IsFileWritingError: " + IsFileWritingError.ToString() + Environment.NewLine +
+                    "IsFileReadingError: " + IsFileReadingError.ToString();
+            }
+        }
     }
 }
