@@ -22,9 +22,13 @@ namespace Cyclic_Ping_Your_HDD
     {
         private WindowState previewState;
 
+        ViewModel viewModel;
+
         public MainWindow()
         {
             InitializeComponent();
+
+            viewModel = new ViewModel();
 
             StateChanged += Window_StateChanged;
 
