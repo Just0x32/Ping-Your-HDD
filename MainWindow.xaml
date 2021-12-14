@@ -8,7 +8,7 @@
         xmlns:local="clr-namespace:Cyclic_Ping_Your_HDD"
         mc:Ignorable="d"
         ResizeMode="CanMinimize" WindowStartupLocation="CenterScreen"
-        Title="Cyclic Ping Your HDD" MinHeight="135" MaxHeight="135" Height="135" MinWidth="240" MaxWidth="240" Width="240">
+        Title="Cyclic Ping Your HDD" MinHeight="135" MaxHeight="135" Height="135" MinWidth="300" MaxWidth="300" Width="300">
 
     <Grid>
         <Grid.RowDefinitions>

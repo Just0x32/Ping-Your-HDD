@@ -29,12 +29,14 @@ namespace Cyclic_Ping_Your_HDD
             InitializeComponent();
 
             viewModel = new ViewModel();
+            DataContext = viewModel;
 
             StateChanged += Window_StateChanged;
+            FillPathTextBox();
 
             //Hide();
 
-            MessageBox.Show(viewModel.DebugMessage);        // Debug
+            DebugMessage();
         }
 
         private void Window_StateChanged(object sender, EventArgs e)
@@ -55,9 +57,16 @@ namespace Cyclic_Ping_Your_HDD
             WindowState = previewState;
         }
 
+        private void FillPathTextBox() => PathTextBox.Text = viewModel.ToPingFilePath;
+
         private void SavePathButton_Click(object sender, RoutedEventArgs e)
         {
+            viewModel.TransferToPingFilePath(PathTextBox.Text);
+            FillPathTextBox();
 
+            DebugMessage();
         }
+
+        private void DebugMessage() => MessageBox.Show(viewModel.DebugMessage);                 // Debug
     }
 }

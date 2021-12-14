@@ -12,14 +12,14 @@ namespace Cyclic_Ping_Your_HDD
         private readonly string settingsFileProperty = @"ToPingFilePath=";
         private readonly string settingsFileDefaultValue = @"ping.txt";
         private readonly string toSettingsFilePath = @"settings.txt";
-        
+        private readonly char[] fileNameForbiddenSymbols = { '<', '>', ':', '"', '/', '\\', '|', '?', '*' };
+        private readonly char[] pathNameForbiddenSymbols = { '<', '>', '"', '/', '|', '?', '*' };
+
+
         private StreamReader streamReader;
         private StreamWriter streamWriter;
 
-        public Model()
-        {
-            SetToPingFilePath();
-        }
+        public Model() => ReadAndCheckSettingsFile();
         
         public bool IsPingRunning { get; private set; } = false;
 
@@ -31,15 +31,19 @@ namespace Cyclic_Ping_Your_HDD
 
         public bool IsFileReadingError { get; private set; } = false;
 
+        public bool IsFilePathValidProperty { get; private set; } = false;          // Debug
+
+        public string ToDirectoryPath { get; private set; }                 // Debug
+
         public void ToogleWritingState()
         {
 
         }
 
-        private void SetToPingFilePath ()
+        private void ReadAndCheckSettingsFile ()
         {
             bool settingsFileExist = File.Exists(toSettingsFilePath);
-            bool isValueFromSettingsFileValid = false;
+            bool isFilePathValid = false;
 
             if (settingsFileExist)
             {
@@ -49,41 +53,50 @@ namespace Cyclic_Ping_Your_HDD
                 if (settingsFileFirstLine.IndexOf(settingsFileProperty) == 0)
                 {
                     settingsFileValue = settingsFileFirstLine.Replace(settingsFileProperty, "");
-                    int indexOfFileName = IndexOfFileName(settingsFileValue);
 
-                    if (indexOfFileName >= 0 && Directory.Exists(settingsFileValue[..indexOfFileName]))
+                    if (IsFilePathValid(settingsFileValue))
                     {
-                        isValueFromSettingsFileValid = true;
+                        isFilePathValid = true;
                         ToPingFilePath = settingsFileValue;
                     }
                 }
             }
 
-            if (!settingsFileExist || !isValueFromSettingsFileValid)
+            if (!settingsFileExist || !isFilePathValid)
             {
-                ToPingFilePath = settingsFileDefaultValue;
-
                 CreatingFile(toSettingsFilePath);
                 WriteLineToFile(toSettingsFilePath, settingsFileProperty + settingsFileDefaultValue);
+
+                ToPingFilePath = settingsFileDefaultValue;
+            }
+        }
+
+        public void CheckAndSaveReceivedFilePath(string receivedFilePath)
+        {
+            bool settingsFileExist = File.Exists(toSettingsFilePath);
+            bool isFilePathValid = false;
+
+            if (IsFilePathValid(receivedFilePath))
+            {
+                isFilePathValid = true;
+                ToPingFilePath = receivedFilePath;
             }
 
-            int IndexOfFileName(string toFilePath)
-            {
-                int indexOfLastDot = toFilePath.LastIndexOf(".");
-                int indexOfLastBackSlash = toFilePath.LastIndexOf(@"\");
+            IsFilePathValidProperty = isFilePathValid;
 
-                if (indexOfLastDot > indexOfLastBackSlash && indexOfLastBackSlash >= 0)
-                {
-                    return indexOfLastBackSlash + 1;
-                }
-                else if (indexOfLastDot > indexOfLastBackSlash && indexOfLastBackSlash < 0)
-                {
-                    return 0;
-                }
-                else
-                {
-                    return -1;
-                }
+            if (!settingsFileExist && !isFilePathValid)
+            {
+                CreatingFile(toSettingsFilePath);
+                WriteLineToFile(toSettingsFilePath, settingsFileProperty + settingsFileDefaultValue);
+
+                ToPingFilePath = settingsFileDefaultValue;
+            }
+            else if (!settingsFileExist || isFilePathValid)
+            {
+                CreatingFile(toSettingsFilePath);
+                WriteLineToFile(toSettingsFilePath, settingsFileProperty + receivedFilePath);
+
+                ToPingFilePath = receivedFilePath;
             }
         }
 
@@ -135,6 +148,54 @@ namespace Cyclic_Ping_Your_HDD
             }
 
             return textLine;
+        }
+
+        private bool IsFilePathValid(string toFilePath)
+        {
+            foreach (var forbiddenSymbol in pathNameForbiddenSymbols)
+                if (toFilePath.Contains(forbiddenSymbol))
+                    return false;
+
+            int indexOfFileName = IndexOfFileName(toFilePath);
+
+            if (indexOfFileName >= 0)
+            {
+                string toDirectoryPath = toFilePath[..indexOfFileName];
+                string fileName = toFilePath[indexOfFileName..];
+
+                foreach (var forbiddenSymbol in fileNameForbiddenSymbols)
+                    if (fileName.Contains(forbiddenSymbol))
+                        return false;
+
+                if (toDirectoryPath == "")
+                {
+                    toDirectoryPath = @"\";
+                }
+
+                ToDirectoryPath = toDirectoryPath;                              // Debug
+
+                if (Directory.Exists(toDirectoryPath))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+
+            int IndexOfFileName(string toFilePath)
+            {
+                int indexOfLastDot = toFilePath.LastIndexOf(".");
+                int indexOfLastBackSlash = toFilePath.LastIndexOf(@"\");
+
+                if (indexOfLastDot < 0 || indexOfLastDot < indexOfLastBackSlash || (toFilePath.Length - indexOfLastDot) < 2)
+                {
+                    return -1;
+                }
+                else
+                {
+                    return indexOfLastBackSlash + 1;
+                }
+            }
         }
     }
 }

@@ -15,8 +15,6 @@ namespace Cyclic_Ping_Your_HDD
              model = new Model();
         }
 
-
-
         public string ToPingFilePath { get => model.ToPingFilePath; }
 
         public bool IsFileCreatingError { get => model.IsFileCreatingError; }
@@ -25,15 +23,23 @@ namespace Cyclic_Ping_Your_HDD
 
         public bool IsFileReadingError { get => model.IsFileReadingError; }
 
-        public string DebugMessage          // Debug
+        public bool IsFilePathValid { get => model.IsFilePathValidProperty; }       // Debug
+
+        public string ToDirectoryPath { get => model.ToDirectoryPath; }               // Debug
+
+        public string DebugMessage                                                    // Debug
         {
             get
             {
                 return "ToPingFilePath: " + ToPingFilePath + Environment.NewLine +
                     "IsFileCreatingError: " + IsFileCreatingError.ToString() + Environment.NewLine +
                     "IsFileWritingError: " + IsFileWritingError.ToString() + Environment.NewLine +
-                    "IsFileReadingError: " + IsFileReadingError.ToString();
+                    "IsFileReadingError: " + IsFileReadingError.ToString() + Environment.NewLine +
+                    "ToDirectoryPath: " + ToDirectoryPath + Environment.NewLine +
+                    "IsFilePathValid: " + IsFilePathValid.ToString();
             }
         }
+
+        public void TransferToPingFilePath(string toFilePath) => model.CheckAndSaveReceivedFilePath(toFilePath);
     }
 }
