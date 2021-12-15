@@ -8,28 +8,45 @@
         xmlns:local="clr-namespace:Cyclic_Ping_Your_HDD"
         mc:Ignorable="d"
         ResizeMode="CanMinimize" WindowStartupLocation="CenterScreen"
-        Title="Cyclic Ping Your HDD" MinHeight="135" MaxHeight="135" Height="135" MinWidth="300" MaxWidth="300" Width="300">
-
+        Title="Cyclic Ping Your HDD" MinHeight="200" MaxHeight="200" Height="200" MinWidth="300" MaxWidth="300" Width="300">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        </Style>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="0.6*"/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
             <RowDefinition Height="0.7*"/>
-            <RowDefinition/>
-            <RowDefinition/>
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0"
                    VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0"
-                   Text="Path to ping folder:" />
+                   Text="Path to ping file:" />
 
         <TextBox x:Name="PathTextBox"
                  Grid.Row="1"
                  VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="8 6" />
 
-        <Button x:Name="SavePathButton" Click="SavePathButton_Click"
+        <Button x:Name="SaveSettingsButton" Click="SaveSettingsButton_Click"
                 Grid.Row="2"
-                VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="8 4 8 8"
-                Content="Save path" />
+                Margin="8 4 8 8"
+                Content="Save settings" />
 
+        <Button x:Name="PingToogleButton" Click="PingToogleButton_Click"
+                Grid.Row="3"
+                Margin="8 4 8 8"
+                Content="Start ping" />
+
+        <CheckBox x:Name="PingOnStartAppCheckBox"
+                      Grid.Row="4"
+                      VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="9 0 0 9"
+                      Content="Start cyclic ping on the application start"/>
+        
         <tb:TaskbarIcon Visibility="Visible" ToolTipText="CPY-HDD" TrayLeftMouseDown="TaskbarIcon_TrayLeftMouseDown" />
     </Grid>
 </Window>

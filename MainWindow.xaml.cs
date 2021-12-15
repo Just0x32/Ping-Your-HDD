@@ -59,12 +59,17 @@ namespace Cyclic_Ping_Your_HDD
 
         private void FillPathTextBox() => PathTextBox.Text = viewModel.ToPingFilePath;
 
-        private void SavePathButton_Click(object sender, RoutedEventArgs e)
+        private void SaveSettingsButton_Click(object sender, RoutedEventArgs e)
         {
             viewModel.TransferToPingFilePath(PathTextBox.Text);
             FillPathTextBox();
 
             DebugMessage();
+        }
+
+        private void PingToogleButton_Click(object sender, RoutedEventArgs e)
+        {
+
         }
 
         private void DebugMessage() => MessageBox.Show(viewModel.DebugMessage);                 // Debug

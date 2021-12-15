@@ -5,25 +5,37 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+#pragma warning disable CS0168
+
 namespace Cyclic_Ping_Your_HDD
 {
     public class Model
     {
-        private readonly string settingsFileProperty = @"ToPingFilePath=";
-        private readonly string settingsFileDefaultValue = @"ping.txt";
         private readonly string toSettingsFilePath = @"settings.txt";
+
+        private readonly string[] settingsProperties = { @"ToPingFilePath=", @"IsPingingOnAppStart=" };
+        private readonly string[] settingsDefaultValues = { @"ping.txt", @"false" };
+
+        private delegate bool ValidationMethod(string value);
+        private readonly ValidationMethod[] AreSettingsValuesValid;
+
         private readonly char[] fileNameForbiddenSymbols = { '<', '>', ':', '"', '/', '\\', '|', '?', '*' };
         private readonly char[] pathNameForbiddenSymbols = { '<', '>', '"', '/', '|', '?', '*' };
-
 
         private StreamReader streamReader;
         private StreamWriter streamWriter;
 
-        public Model() => ReadAndCheckSettingsFile();
-        
-        public bool IsPingRunning { get; private set; } = false;
+        public Model()
+        {
+            AreSettingsValuesValid = new ValidationMethod[] { IsToPingFilePathValueValid, IsPingingOnAppStartValueValid };
+            CheckSettingsFile();
+        }
 
+        public bool IsPinging { get; private set; } = false;
+        
         public string ToPingFilePath { get; private set; }
+        
+        private bool IsPingingOnAppStart { get; set; } = false;
 
         public bool IsFileCreatingError { get; private set; } = false;
 
@@ -31,74 +43,150 @@ namespace Cyclic_Ping_Your_HDD
 
         public bool IsFileReadingError { get; private set; } = false;
 
-        public bool IsFilePathValidProperty { get; private set; } = false;          // Debug
+        public bool AreFromSettingsValuesValid { get; private set; } = false;          // Debug
 
         public string ToDirectoryPath { get; private set; }                 // Debug
 
-        public void ToogleWritingState()
+        public void TooglePingState()
         {
+            IsPinging = !IsPinging;
+
 
         }
 
-        private void ReadAndCheckSettingsFile ()
+        private bool IsToPingFilePathValueValid(string toFilePath)
         {
-            bool settingsFileExist = File.Exists(toSettingsFilePath);
-            bool isFilePathValid = false;
+            foreach (var forbiddenSymbol in pathNameForbiddenSymbols)
+                if (toFilePath.Contains(forbiddenSymbol))
+                    return false;
 
-            if (settingsFileExist)
+            int indexOfFileName = IndexOfFileName(toFilePath);
+
+            if (indexOfFileName >= 0)
             {
-                string settingsFileFirstLine = ReadLineFromFile(toSettingsFilePath);
-                string settingsFileValue;
+                string toDirectoryPath = toFilePath[..indexOfFileName];
+                string fileName = toFilePath[indexOfFileName..];
 
-                if (settingsFileFirstLine.IndexOf(settingsFileProperty) == 0)
+                foreach (var forbiddenSymbol in fileNameForbiddenSymbols)
+                    if (fileName.Contains(forbiddenSymbol))
+                        return false;
+
+                if (toDirectoryPath == "")
                 {
-                    settingsFileValue = settingsFileFirstLine.Replace(settingsFileProperty, "");
+                    toDirectoryPath = @"\";
+                }
 
-                    if (IsFilePathValid(settingsFileValue))
-                    {
-                        isFilePathValid = true;
-                        ToPingFilePath = settingsFileValue;
-                    }
+                ToDirectoryPath = toDirectoryPath;                              // Debug
+
+                if (Directory.Exists(toDirectoryPath))
+                {
+                    return true;
                 }
             }
 
-            if (!settingsFileExist || !isFilePathValid)
-            {
-                CreatingFile(toSettingsFilePath);
-                WriteLineToFile(toSettingsFilePath, settingsFileProperty + settingsFileDefaultValue);
+            return false;
 
-                ToPingFilePath = settingsFileDefaultValue;
+            int IndexOfFileName(string toFilePath)
+            {
+                int indexOfLastDot = toFilePath.LastIndexOf(".");
+                int indexOfLastBackSlash = toFilePath.LastIndexOf(@"\");
+
+                if (indexOfLastDot < 0 || indexOfLastDot < indexOfLastBackSlash || (toFilePath.Length - indexOfLastDot) < 2)
+                {
+                    return -1;
+                }
+                else
+                {
+                    return indexOfLastBackSlash + 1;
+                }
             }
         }
 
-        public void CheckAndSaveReceivedFilePath(string receivedFilePath)
+        private bool IsPingingOnAppStartValueValid(string value)
         {
-            bool settingsFileExist = File.Exists(toSettingsFilePath);
-            bool isFilePathValid = false;
-
-            if (IsFilePathValid(receivedFilePath))
+            if (value == "true" || value == "false")
             {
-                isFilePathValid = true;
-                ToPingFilePath = receivedFilePath;
+                return true;
             }
-
-            IsFilePathValidProperty = isFilePathValid;
-
-            if (!settingsFileExist && !isFilePathValid)
+            else
             {
-                CreatingFile(toSettingsFilePath);
-                WriteLineToFile(toSettingsFilePath, settingsFileProperty + settingsFileDefaultValue);
-
-                ToPingFilePath = settingsFileDefaultValue;
-            }
-            else if (!settingsFileExist || isFilePathValid)
-            {
-                CreatingFile(toSettingsFilePath);
-                WriteLineToFile(toSettingsFilePath, settingsFileProperty + receivedFilePath);
-
-                ToPingFilePath = receivedFilePath;
+                return false;
             }
         }
+
+        private void CheckSettingsFile ()
+        {
+            if (!File.Exists(toSettingsFilePath))
+                CreatingFile(toSettingsFilePath);
+
+            string[] fromSettingsValues = new string[] { "", "" };
+
+#nullable enable
+            string? fromSettingsValue;
+
+            for (int i = 0; i < settingsProperties.Length; i++)
+            {
+                fromSettingsValue = GetFromSettingsFileValue(settingsProperties[i]);
+
+                if (fromSettingsValue != null && AreSettingsValuesValid[i](fromSettingsValue))
+                {
+                    fromSettingsValues[i] = fromSettingsValue;
+                }
+            }
+#nullable disable
+
+            bool areFromSettingsValuesValid = true;
+
+            foreach (var item in fromSettingsValues)
+            {
+                if (item.Length == 0)
+                {
+                    areFromSettingsValuesValid = false;
+                    break;
+                }
+            }
+
+            AreFromSettingsValuesValid = areFromSettingsValuesValid;
+
+            if (areFromSettingsValuesValid)
+            {
+                ToPingFilePath = fromSettingsValues[0];
+                IsPingingOnAppStart = Convert.ToBoolean(fromSettingsValues[1]);
+            }
+            else
+            {
+                SetDefaultSettings();
+            }
+        }
+
+        //public void CheckAndSaveReceivedFilePath(string receivedFilePath)
+        //{
+        //    bool settingsFileExist = File.Exists(toSettingsFilePath);
+        //    bool isFilePathValid = false;
+
+        //    if (IsFilePathValid(receivedFilePath))
+        //    {
+        //        isFilePathValid = true;
+        //        ToPingFilePath = receivedFilePath;
+        //    }
+
+        //    IsFilePathValidProperty = isFilePathValid;
+
+        //    if (!settingsFileExist && !isFilePathValid)
+        //    {
+        //        CreatingFile(toSettingsFilePath);
+        //        WriteLineToFile(toSettingsFilePath, toPingFilePathProperty + settingsFileDefaultValue);
+
+        //        ToPingFilePath = settingsFileDefaultValue;
+        //    }
+        //    else if (!settingsFileExist || isFilePathValid)
+        //    {
+        //        CreatingFile(toSettingsFilePath);
+        //        WriteLineToFile(toSettingsFilePath, toPingFilePathProperty + receivedFilePath);
+
+        //        ToPingFilePath = receivedFilePath;
+        //    }
+        //}
 
         private void CreatingFile(string toFilePath)
         {
@@ -150,52 +238,63 @@ namespace Cyclic_Ping_Your_HDD
             return textLine;
         }
 
-        private bool IsFilePathValid(string toFilePath)
+#nullable enable
+        private string? GetFromSettingsFileValue(string propertyName)
         {
-            foreach (var forbiddenSymbol in pathNameForbiddenSymbols)
-                if (toFilePath.Contains(forbiddenSymbol))
-                    return false;
+            string? textLine = null;
 
-            int indexOfFileName = IndexOfFileName(toFilePath);
-
-            if (indexOfFileName >= 0)
+            try
             {
-                string toDirectoryPath = toFilePath[..indexOfFileName];
-                string fileName = toFilePath[indexOfFileName..];
+                streamReader = new StreamReader(toSettingsFilePath);
 
-                foreach (var forbiddenSymbol in fileNameForbiddenSymbols)
-                    if (fileName.Contains(forbiddenSymbol))
-                        return false;
-
-                if (toDirectoryPath == "")
+                do
                 {
-                    toDirectoryPath = @"\";
-                }
+                    textLine = streamReader.ReadLine();
 
-                ToDirectoryPath = toDirectoryPath;                              // Debug
-
-                if (Directory.Exists(toDirectoryPath))
-                {
-                    return true;
+                    if (textLine is null)
+                        break;
                 }
+                while (!textLine.StartsWith(propertyName));
+            }
+            catch (IOException e)
+            {
+                IsFileReadingError = true;
+            }
+            finally
+            {
+                streamReader?.Dispose();
+            }
+                            
+            if (textLine != null && textLine.Length > propertyName.Length)
+            {
+                textLine = textLine.Replace(propertyName, "");
             }
 
-            return false;
+            return textLine;
+        }
+#nullable disable
 
-            int IndexOfFileName(string toFilePath)
+        private void SetDefaultSettings()
+        {
+            try
             {
-                int indexOfLastDot = toFilePath.LastIndexOf(".");
-                int indexOfLastBackSlash = toFilePath.LastIndexOf(@"\");
+                streamWriter = new StreamWriter(toSettingsFilePath);
 
-                if (indexOfLastDot < 0 || indexOfLastDot < indexOfLastBackSlash || (toFilePath.Length - indexOfLastDot) < 2)
-                {
-                    return -1;
-                }
-                else
-                {
-                    return indexOfLastBackSlash + 1;
-                }
+                for (int i = 0; i < settingsProperties.Length; i++)
+                    streamWriter.WriteLine(settingsProperties[i] + settingsDefaultValues[i]);
             }
+            catch (IOException e)
+            {
+                IsFileWritingError = true;
+            }
+            finally
+            {
+                streamWriter?.Dispose();
+            }
+
+            ToPingFilePath = settingsDefaultValues[0];
+            IsPingingOnAppStart = Convert.ToBoolean(settingsDefaultValues[1]);
+
         }
     }
 }

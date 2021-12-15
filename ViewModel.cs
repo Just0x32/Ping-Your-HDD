@@ -10,10 +10,9 @@ namespace Cyclic_Ping_Your_HDD
     {
         Model model;
 
-        public ViewModel ()
-        {
-             model = new Model();
-        }
+        public ViewModel () => model = new Model();
+
+        public bool IsPinging { get => model.IsPinging; }
 
         public string ToPingFilePath { get => model.ToPingFilePath; }
 
@@ -23,7 +22,7 @@ namespace Cyclic_Ping_Your_HDD
 
         public bool IsFileReadingError { get => model.IsFileReadingError; }
 
-        public bool IsFilePathValid { get => model.IsFilePathValidProperty; }       // Debug
+        public bool AreFromSettingsValuesValid { get => model.AreFromSettingsValuesValid; }       // Debug
 
         public string ToDirectoryPath { get => model.ToDirectoryPath; }               // Debug
 
@@ -32,14 +31,20 @@ namespace Cyclic_Ping_Your_HDD
             get
             {
                 return "ToPingFilePath: " + ToPingFilePath + Environment.NewLine +
+                    "ToDirectoryPath: " + ToDirectoryPath + Environment.NewLine +
+                    Environment.NewLine +
+                    "AreFromSettingsValuesValid: " + AreFromSettingsValuesValid.ToString() + Environment.NewLine +
+                    Environment.NewLine +
+                    "IsPinging: " + IsPinging.ToString() + Environment.NewLine +
                     "IsFileCreatingError: " + IsFileCreatingError.ToString() + Environment.NewLine +
                     "IsFileWritingError: " + IsFileWritingError.ToString() + Environment.NewLine +
-                    "IsFileReadingError: " + IsFileReadingError.ToString() + Environment.NewLine +
-                    "ToDirectoryPath: " + ToDirectoryPath + Environment.NewLine +
-                    "IsFilePathValid: " + IsFilePathValid.ToString();
+                    "IsFileReadingError: " + IsFileReadingError.ToString();
             }
         }
 
-        public void TransferToPingFilePath(string toFilePath) => model.CheckAndSaveReceivedFilePath(toFilePath);
+        public void TransferToPingFilePath(string toFilePath)
+        {
+             //model.CheckAndSaveReceivedFilePath(toFilePath);
+        }
     }
 }
