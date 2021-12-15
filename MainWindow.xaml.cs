@@ -31,10 +31,12 @@ namespace Cyclic_Ping_Your_HDD
             viewModel = new ViewModel();
             DataContext = viewModel;
 
+            this.Closing += CloseApp;
             StateChanged += Window_StateChanged;
-            FillPathTextBox();
 
             //Hide();
+
+            SetSettingsValuesFromModel();
 
             DebugMessage();
         }
@@ -57,21 +59,47 @@ namespace Cyclic_Ping_Your_HDD
             WindowState = previewState;
         }
 
-        private void FillPathTextBox() => PathTextBox.Text = viewModel.ToPingFilePath;
+        private void TaskbarIcon_TrayRightMouseDown(object sender, RoutedEventArgs e)
+        {
+            
+        }
+
+        private void SetSettingsValuesFromModel()
+        {
+            PathTextBox.Text = viewModel.ToPingFilePath;
+            DelayTextBox.Text = viewModel.PingDelay;
+
+            PingOnStartAppCheckBox.IsChecked = viewModel.IsPingingOnAppStart;
+
+            if (viewModel.IsPinging)
+            {
+                PingToogleButton.Content = "Stop ping";
+            }
+            else
+            {
+                PingToogleButton.Content = "Start ping";
+            }
+            SettingsGroupBox.IsEnabled = !viewModel.IsPinging;
+        }
 
         private void SaveSettingsButton_Click(object sender, RoutedEventArgs e)
         {
-            viewModel.TransferToPingFilePath(PathTextBox.Text);
-            FillPathTextBox();
+            viewModel.TransferFromViewSettingsValues(PathTextBox.Text, DelayTextBox.Text, PingOnStartAppCheckBox.IsChecked.ToString());
+            SetSettingsValuesFromModel();
 
-            DebugMessage();
+            DebugMessage();                         // Debug
         }
 
         private void PingToogleButton_Click(object sender, RoutedEventArgs e)
         {
-
+            viewModel.TooglePingState();
+            SetSettingsValuesFromModel();
         }
 
         private void DebugMessage() => MessageBox.Show(viewModel.DebugMessage);                 // Debug
+
+        private void MenuItem_Click(object sender, RoutedEventArgs e) => Close();
+
+        private void CloseApp(object sender, System.ComponentModel.CancelEventArgs e) => viewModel.CloseApp();
     }
 }

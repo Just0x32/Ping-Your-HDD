@@ -8,45 +8,116 @@
         xmlns:local="clr-namespace:Cyclic_Ping_Your_HDD"
         mc:Ignorable="d"
         ResizeMode="CanMinimize" WindowStartupLocation="CenterScreen"
-        Title="Cyclic Ping Your HDD" MinHeight="200" MaxHeight="200" Height="200" MinWidth="300" MaxWidth="300" Width="300">
+        Title="Cyclic Ping Your HDD" MinHeight="230" MaxHeight="230" Height="230" MinWidth="350" MaxWidth="350" Width="350">
     <Window.Resources>
         <Style TargetType="Button">
-            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Bottom"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Height" Value="25"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="VerticalAlignment" Value="Bottom"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="8 6 8 0"/>
+            <Setter Property="Height" Value="22"/>
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Bottom"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="Margin" Value="10 0 0 0"/>
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="VerticalAlignment" Value="Bottom"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
         </Style>
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="0.6*"/>
             <RowDefinition/>
-            <RowDefinition/>
-            <RowDefinition/>
-            <RowDefinition Height="0.7*"/>
+            <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0"
-                   Text="Path to ping file:" />
+        <GroupBox x:Name="SettingsGroupBox"
+            Grid.Row="0"
+            Margin="10 5 10 5"
+            Header="Settings">
 
-        <TextBox x:Name="PathTextBox"
-                 Grid.Row="1"
-                 VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="8 6" />
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition Height="auto"/>
+                    <RowDefinition Height="auto"/>
+                </Grid.RowDefinitions>
 
-        <Button x:Name="SaveSettingsButton" Click="SaveSettingsButton_Click"
-                Grid.Row="2"
-                Margin="8 4 8 8"
-                Content="Save settings" />
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2.8*"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition Height="auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock
+                        Grid.Column="0" Grid.Row="0"
+                        Text="Path to ping file:" />
+
+                    <TextBlock
+                        Grid.Column="1" Grid.Row="0"
+                        Text="Ping delay:" />
+
+                    <TextBox x:Name="PathTextBox"
+                        Grid.Column="0" Grid.Row="1"/>
+
+                    <TextBox x:Name="DelayTextBox"
+                        Grid.Column="1" Grid.Row="1"
+                        HorizontalContentAlignment="Center"/>
+                </Grid>
+
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="auto"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+
+                    <CheckBox x:Name="PingOnStartAppCheckBox"
+                              Grid.Column="0"
+                              Margin="9 8 2 9"
+                              Content="Start cyclic ping on the app start"/>
+
+                    <TextBlock
+                        Grid.Column="1"
+                        VerticalAlignment="Top"
+                        HorizontalAlignment="Right"
+                        Margin="0 2 10 0"
+                        Foreground="Gray"
+                        Text="(3..3600 s)"/>
+
+                </Grid>
+
+                <Button x:Name="SaveSettingsButton" Click="SaveSettingsButton_Click"
+                            Grid.Row="2"
+                            Margin="20 6"
+                            Content="Save settings" />
+            </Grid>
+        </GroupBox>
 
         <Button x:Name="PingToogleButton" Click="PingToogleButton_Click"
-                Grid.Row="3"
-                Margin="8 4 8 8"
+                Grid.Row="1"
+                Margin="11 6 11 11"
                 Content="Start ping" />
 
-        <CheckBox x:Name="PingOnStartAppCheckBox"
-                      Grid.Row="4"
-                      VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="9 0 0 9"
-                      Content="Start cyclic ping on the application start"/>
-        
-        <tb:TaskbarIcon Visibility="Visible" ToolTipText="CPY-HDD" TrayLeftMouseDown="TaskbarIcon_TrayLeftMouseDown" />
+        <tb:TaskbarIcon Visibility="Visible"
+                        ToolTipText="CPY-HDD"
+                        TrayLeftMouseDown="TaskbarIcon_TrayLeftMouseDown"
+                        TrayRightMouseDown="TaskbarIcon_TrayRightMouseDown">
+
+            <tb:TaskbarIcon.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Exit" Click="MenuItem_Click" />
+                </ContextMenu>
+            </tb:TaskbarIcon.ContextMenu>
+        </tb:TaskbarIcon>
     </Grid>
 </Window>
