@@ -1,16 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Cyclic_Ping_Your_HDD
+namespace Ping_Your_HDD
 {
-    public class ViewModel
+    public class ViewModel : INotifyPropertyChanged
     {
         Model model;
 
-        public ViewModel () => model = new Model();
+        public ViewModel ()
+        {
+            model = new Model();
+
+            model.PropertyChanged += ModelNotify;
+        }
 
         public bool IsPinging { get => model.IsPinging; }
 
@@ -26,34 +33,7 @@ namespace Cyclic_Ping_Your_HDD
 
         public bool IsFileReadingError { get => model.IsFileReadingError; }
 
-        public bool AreFromSettingsValuesValid { get => model.AreFromSettingsValuesValid; }       // Debug
-
-        public bool AreFromViewValuesValid { get => model.AreFromViewValuesValid; }       // Debug
-
-        public string SettingsFromView { get => model.SettingsFromView; }               // Debug
-
-        public string ToDirectoryPath { get => model.ToDirectoryPath; }               // Debug
-
-        public string DebugMessage                                                    // Debug
-        {
-            get
-            {
-                return "ToPingFilePath: " + ToPingFilePath + Environment.NewLine +
-                    "ToDirectoryPath: " + ToDirectoryPath + Environment.NewLine +
-                    "PingDelay: " + PingDelay + Environment.NewLine +
-                    "IsPingingOnAppStart: " + IsPingingOnAppStart.ToString() + Environment.NewLine +
-                    Environment.NewLine +
-                    "AreFromSettingsValuesValid: " + AreFromSettingsValuesValid.ToString() + Environment.NewLine +
-                    Environment.NewLine +
-                    "SettingsFromView: " + Environment.NewLine + SettingsFromView + Environment.NewLine +
-                    "AreFromViewValuesValid: " + AreFromViewValuesValid.ToString() + Environment.NewLine +
-                    Environment.NewLine +
-                    "IsPinging: " + IsPinging.ToString() + Environment.NewLine +
-                    "IsFileCreatingError: " + IsFileCreatingError.ToString() + Environment.NewLine +
-                    "IsFileWritingError: " + IsFileWritingError.ToString() + Environment.NewLine +
-                    "IsFileReadingError: " + IsFileReadingError.ToString();
-            }
-        }
+        public bool IsIOError { get => model.IsIOError(); }
 
         public void TooglePingState() => model.TooglePingState();
 
@@ -61,5 +41,11 @@ namespace Cyclic_Ping_Your_HDD
             => model.CheckFromViewSettingsValues(fromViewToPingFilePathValue, fromViewPingDelayValue, fromViewIsPingingOnAppStartValue);
 
         public void CloseApp() => model.CloseApp();
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void OnPropertyChanged([CallerMemberName] string propertyName = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+        private void ModelNotify(object sender, PropertyChangedEventArgs e) => OnPropertyChanged(e.PropertyName);
     }
 }

@@ -1,15 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 #pragma warning disable CS0168
 
-namespace Cyclic_Ping_Your_HDD
+namespace Ping_Your_HDD
 {
-    public class Model
+    public class Model : INotifyPropertyChanged
     {
         private readonly string toSettingsFilePath = @"settings.txt";
 
@@ -27,6 +30,12 @@ namespace Cyclic_Ping_Your_HDD
         private StreamReader streamReader;
         private StreamWriter streamWriter;
 
+        private Thread pingTread;
+
+        private bool isFileCreatingError = false;
+        private bool isFileWritingError = false;
+        private bool isFileReadingError = false;
+
         public Model()
         {
             AreSettingsValuesValid = new ValidationMethod[] { IsToPingFilePathValueValid, IsPingDelayValueValid, IsPingingOnAppStartValueValid };
@@ -34,9 +43,14 @@ namespace Cyclic_Ping_Your_HDD
             CheckAllArraysLength();
             CheckSettingsFile();
 
+            pingTread = new Thread(new ThreadStart(Ping));
+            pingTread.Start();
+
             if(IsPingingOnAppStart)
                 TooglePingState();
         }
+
+        private bool IsClosingApp { get; set; } = false;
 
         public bool IsPinging { get; private set; } = false;
         
@@ -46,25 +60,105 @@ namespace Cyclic_Ping_Your_HDD
         
         public bool IsPingingOnAppStart { get; private set; } = false;
 
-        public bool IsFileCreatingError { get; private set; } = false;
+        public bool IsFileCreatingError
+        {
+            get => isFileCreatingError;
+            private set
+            {
+                isFileCreatingError = value;
+                OnPropertyChanged();
+            }
+        }
 
-        public bool IsFileWritingError { get; private set; } = false;
+        public bool IsFileWritingError
+        {
+            get => isFileWritingError;
+            private set
+            {
+                isFileWritingError = value;
+                OnPropertyChanged();
+            }
+        }
 
-        public bool IsFileReadingError { get; private set; } = false;
+        public bool IsFileReadingError
+        {
+            get => isFileReadingError;
+            private set
+            {
+                isFileReadingError = value;
+                OnPropertyChanged();
+            }
+        }
 
-        public bool AreFromSettingsValuesValid { get; private set; } = false;          // Debug
-
-        public bool AreFromViewValuesValid { get; private set; } = false;          // Debug
-
-        public string SettingsFromView { get; private set; }                        // Debug
-
-        public string ToDirectoryPath { get; private set; }                          // Debug
+        public bool IsIOError() => IsFileCreatingError | IsFileWritingError | IsFileReadingError;
 
         public void TooglePingState()
         {
             IsPinging = !IsPinging;
 
+            if (pingTread.IsAlive)
+                pingTread.Interrupt();
+        }
 
+        private void Ping()
+        {
+            int pingDelay;
+            int lineCounter = 0;
+            bool appendLine;
+
+            CreateFile(ToPingFilePath);
+
+            while (!IsClosingApp && !IsIOError())
+            {
+                pingDelay = PingDelay * 1000;
+
+                ThreadDelay(Timeout.Infinite);
+
+                while (IsPinging && !IsClosingApp && !IsIOError())
+                {
+                    if (lineCounter > 200)
+                    {
+                        appendLine = false;
+                        lineCounter = 0;
+                    }
+                    else
+                    {
+                        appendLine = true;
+                    }
+
+                    WritePingFile(ToPingFilePath, appendLine);
+                    lineCounter++;
+
+                    ThreadDelay(pingDelay);
+                }
+            }
+
+            void ThreadDelay(int delay)
+            {
+                try
+                {
+                    Thread.Sleep(delay);
+                }
+                catch (ThreadInterruptedException e) { }
+            }
+
+            void WritePingFile(string toPingFilePath, bool appendLine)
+            {
+                try
+                {
+                    streamWriter = new StreamWriter(toPingFilePath, appendLine);
+
+                    streamWriter.WriteLine(DateTime.Now);
+                }
+                catch (IOException e)
+                {
+                    IsFileWritingError = true;
+                }
+                finally
+                {
+                    streamWriter?.Dispose();
+                }
+            }
         }
 
         private bool IsToPingFilePathValueValid(string toFilePathValue)
@@ -88,8 +182,6 @@ namespace Cyclic_Ping_Your_HDD
                 {
                     toDirectoryPath = @"\";
                 }
-
-                ToDirectoryPath = toDirectoryPath;                              // Debug
 
                 if (Directory.Exists(toDirectoryPath))
                 {
@@ -152,7 +244,7 @@ namespace Cyclic_Ping_Your_HDD
         private void CheckSettingsFile ()
         {
             if (!File.Exists(toSettingsFilePath))
-                CreatingFile(toSettingsFilePath);
+                CreateFile(toSettingsFilePath);
 
             string[] fromSettingsValues = new string[propertiesQuantities];
             for (int i = 0; i < propertiesQuantities; i++)
@@ -185,8 +277,6 @@ namespace Cyclic_Ping_Your_HDD
                 }
             }
 
-            AreFromSettingsValuesValid = areFromSettingsValuesValid;
-
             if (areFromSettingsValuesValid)
             {
                 SetPublicProperties(fromSettingsValues);
@@ -199,22 +289,14 @@ namespace Cyclic_Ping_Your_HDD
 
         public void CheckFromViewSettingsValues(string toPingFilePathValue, string pingDelayValue, string isPingingOnAppStartValue)
         {
-            SettingsFromView = toPingFilePathValue + Environment.NewLine + pingDelayValue + Environment.NewLine + isPingingOnAppStartValue;        // Debug
-
             if (IsToPingFilePathValueValid(toPingFilePathValue) && IsPingDelayValueValid(pingDelayValue) && IsPingingOnAppStartValueValid(isPingingOnAppStartValue))
             {
                 string[] fromViewSettingsValues = new string[propertiesQuantities] { toPingFilePathValue, pingDelayValue, isPingingOnAppStartValue };
                 SetSettingsValues(fromViewSettingsValues);
-
-                AreFromViewValuesValid = true;          // Debug
-            }
-            else
-            {
-                AreFromViewValuesValid = false;         // Debug
             }
         }
 
-        private void CreatingFile(string toFilePath)
+        private void CreateFile(string toFilePath)
         {
             try
             {
@@ -292,7 +374,14 @@ namespace Cyclic_Ping_Your_HDD
 
         public void CloseApp()
         {
+            IsClosingApp = true;
 
+            if (pingTread.IsAlive)
+                pingTread.Interrupt();
         }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void OnPropertyChanged([CallerMemberName] string propertyName = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }
