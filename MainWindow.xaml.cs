@@ -31,7 +31,6 @@ namespace Ping_Your_HDD
             InitializeComponent();
 
             viewModel = new ViewModel();
-            DataContext = viewModel;
 
             this.Closing += CloseApp;
             StateChanged += Window_StateChanged;

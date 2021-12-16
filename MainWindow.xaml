@@ -8,7 +8,8 @@
         xmlns:local="clr-namespace:Ping_Your_HDD"
         mc:Ignorable="d"
         ResizeMode="CanMinimize" WindowStartupLocation="CenterScreen"
-        Title="Ping Your HDD" MinHeight="230" MaxHeight="230" Height="230" MinWidth="350" MaxWidth="350" Width="350">
+        Icon="Icons/MainWindowIcon.ico"
+        Title="Ping Your HDD" MinHeight="230" MaxHeight="230" Height="230" MinWidth="350" MaxWidth="350" Width="350" >
     <Window.Resources>
         <Style TargetType="Button">
             <Setter Property="VerticalAlignment" Value="Bottom"/>
@@ -108,7 +109,9 @@
                 Margin="11 6 11 11"
                 Content="Start ping" />
 
-        <tb:TaskbarIcon Visibility="Visible"
+        <tb:TaskbarIcon x:Name="TaskBarIcon"
+                        Visibility="Visible"
+                        IconSource="Icons/TrayIcon.ico"
                         ToolTipText="Ping Your HDD"
                         TrayLeftMouseDown="TaskbarIcon_TrayLeftMouseDown">
 

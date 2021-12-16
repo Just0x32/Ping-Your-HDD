@@ -106,13 +106,14 @@ namespace Ping_Your_HDD
             int lineCounter = 0;
             bool appendLine;
 
-            CreateFile(ToPingFilePath);
-
             while (!IsClosingApp && !IsIOError())
             {
                 pingDelay = PingDelay * 1000;
 
                 ThreadDelay(Timeout.Infinite);
+
+                if (IsPinging && !File.Exists(ToPingFilePath))
+                    CreateFile(ToPingFilePath);
 
                 while (IsPinging && !IsClosingApp && !IsIOError())
                 {
