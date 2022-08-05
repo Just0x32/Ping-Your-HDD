@@ -93,11 +93,11 @@ namespace Ping_Your_HDD
                 model.TooglePingState();
         }
 
-        public void ChangeToPingFilePath(string path) => ToPingFilePath = path;
+        public void SetToPingFilePath(string path) => ToPingFilePath = path;
 
-        public void ChangeToScriptFilePath(string path) => ToScriptFilePath = path;
+        public void SetToScriptFilePath(string path) => ToScriptFilePath = path;
 
-        public void ResetToScriptFilePath() => ToScriptFilePath = string.Empty;
+        public void ClearToScriptFilePath() => ToScriptFilePath = string.Empty;
 
         public void SetFromViewSettings()
             => model.SetFromViewSettings(ToPingFilePath, PingDelay, IsPingingOnAppStart.ToString(), ToScriptFilePath);

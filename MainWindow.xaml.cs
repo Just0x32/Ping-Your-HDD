@@ -59,29 +59,29 @@ namespace Ping_Your_HDD
         }
 
         #region [   Click Handlers  ]
-        private void ToPingFilePathSelectButton_Click(object sender, RoutedEventArgs e)
+        private void ToPingFilePathChooseButton_Click(object sender, RoutedEventArgs e)
         {
             SaveFileDialog saveFileDialog = new SaveFileDialog();
-            saveFileDialog.Filter = "TXT files(*.txt)| *.txt";
+            saveFileDialog.Filter = "Settings files (*.*)|*.*";
             saveFileDialog.FileName = viewModel.ToPingFilePath;
 
             if (saveFileDialog.ShowDialog() == true)
-                viewModel.ChangeToPingFilePath(saveFileDialog.FileName);
+                viewModel.SetToPingFilePath(saveFileDialog.FileName);
         }
 
         private void RunScriptButton_Click(object sender, RoutedEventArgs e) => viewModel.RunScript();
 
-        private void ToScriptFilePathSelectButton_Click(object sender, RoutedEventArgs e)
+        private void ToScriptFilePathChooseButton_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "All files(*.*)| *.*";
+            openFileDialog.Filter = "Script files (*.bat, *.exe)|*.bat;*.exe";
             openFileDialog.Multiselect = false;
 
             if (openFileDialog.ShowDialog() == true)
-                viewModel.ChangeToScriptFilePath(openFileDialog.FileName);
+                viewModel.SetToScriptFilePath(openFileDialog.FileName);
         }
 
-        private void ToScriptFilePathResetButton_Click(object sender, RoutedEventArgs e) => viewModel.ResetToScriptFilePath();
+        private void ToScriptFilePathClearButton_Click(object sender, RoutedEventArgs e) => viewModel.ClearToScriptFilePath();
 
         private void SaveSettingsButton_Click(object sender, RoutedEventArgs e) => viewModel.SetFromViewSettings();
 
