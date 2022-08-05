@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -17,24 +18,20 @@ using System.Windows.Shapes;
 
 namespace Ping_Your_HDD
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         private WindowState previewState;
 
-        ViewModel viewModel;
+        ViewModel viewModel = new ViewModel();
 
         public MainWindow()
         {
             InitializeComponent();
-
-            viewModel = new ViewModel();
-
-            this.Closing += CloseApp;
+            DataContext = viewModel;
+            Closing += CloseApp;
             StateChanged += Window_StateChanged;
             viewModel.PropertyChanged += ViewModelNotify;
+            viewModel.Start();
 
             if (viewModel.IsIOError)
             {
@@ -49,62 +46,53 @@ namespace Ping_Your_HDD
 
                 Close();
             }
-            else
-            {
-                SetSettingsValuesFromModel();
-
-                if (viewModel.IsPingingOnAppStart)
-                    Hide();
-            }
+            else if (viewModel.IsPingingOnAppStart)
+                Hide();
         }
 
         private void Window_StateChanged(object sender, EventArgs e)
         {
             if (WindowState == WindowState.Minimized)
-            {
                 Hide();
-            }
             else
-            {
                 previewState = WindowState;
-            }
         }
 
-        private void SetSettingsValuesFromModel()
+        #region [   Click Handlers  ]
+        private void ToPingFilePathSelectButton_Click(object sender, RoutedEventArgs e)
         {
-            PathTextBox.Text = viewModel.ToPingFilePath;
-            DelayTextBox.Text = viewModel.PingDelay;
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "TXT files(*.txt)| *.txt";
+            saveFileDialog.FileName = viewModel.ToPingFilePath;
 
-            PingOnStartAppCheckBox.IsChecked = viewModel.IsPingingOnAppStart;
-
-            if (viewModel.IsPinging)
-            {
-                PingToogleButton.Content = "Stop ping";
-            }
-            else
-            {
-                PingToogleButton.Content = "Start ping";
-            }
-            SettingsGroupBox.IsEnabled = !viewModel.IsPinging;
+            if (saveFileDialog.ShowDialog() == true)
+                viewModel.ChangeToPingFilePath(saveFileDialog.FileName);
         }
 
-        private void SaveSettingsButton_Click(object sender, RoutedEventArgs e)
+        private void RunScriptButton_Click(object sender, RoutedEventArgs e) => viewModel.RunScript();
+
+        private void ToScriptFilePathSelectButton_Click(object sender, RoutedEventArgs e)
         {
-            viewModel.TransferFromViewSettingsValues(PathTextBox.Text, DelayTextBox.Text, PingOnStartAppCheckBox.IsChecked.ToString());
-            SetSettingsValuesFromModel();
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Filter = "All files(*.*)| *.*";
+            openFileDialog.Multiselect = false;
+
+            if (openFileDialog.ShowDialog() == true)
+                viewModel.ChangeToScriptFilePath(openFileDialog.FileName);
         }
 
-        private void PingToogleButton_Click(object sender, RoutedEventArgs e)
-        {
-            viewModel.TooglePingState();
-            SetSettingsValuesFromModel();
-        }
+        private void ToScriptFilePathResetButton_Click(object sender, RoutedEventArgs e) => viewModel.ResetToScriptFilePath();
+
+        private void SaveSettingsButton_Click(object sender, RoutedEventArgs e) => viewModel.SetFromViewSettings();
+
+        private void PingToogleButton_Click(object sender, RoutedEventArgs e) => viewModel.TooglePingState();
 
         private void TaskbarIcon_TrayLeftMouseDown(object sender, RoutedEventArgs e) => ExpandWindow();
 
         private void ExpandMenuItem_Click(object sender, RoutedEventArgs e) => ExpandWindow();
 
         private void ExitMenuItem_Click(object sender, RoutedEventArgs e) => Close();
+        #endregion
 
         private void ExpandWindow()
         {
@@ -130,10 +118,8 @@ namespace Ping_Your_HDD
             for (int i = 1; i < propertyName.Length; i++)
             {
                 if (i + 1 == propertyName.Length)
-                {
                     sb.Append(propertyName[startIndex..(i + 1)] + "!");
-                }
-                else if (Char.IsUpper(propertyName[i]) && !Char.IsUpper(propertyName[i - 1]))
+                else if (char.IsUpper(propertyName[i]) && !char.IsUpper(propertyName[i - 1]))
                 {
                     sb.Append(propertyName[startIndex..i] + " ");
                     startIndex = i;

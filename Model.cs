@@ -7,8 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-
-#pragma warning disable CS0168
+using System.Diagnostics;
 
 namespace Ping_Your_HDD
 {
@@ -16,10 +15,11 @@ namespace Ping_Your_HDD
     {
         private readonly string toSettingsFilePath = @"settings.txt";
 
-        private const int propertiesQuantities = 3;
+        private const int propertiesQuantities = 4;
 
-        private readonly string[] settingsProperties = { @"ToPingFilePath=", @"PingDelay=", @"IsPingingOnAppStart=" };
-        private readonly string[] settingsDefaultValues = { @"ping.txt", "3", @"false" };
+        private readonly string[] settingsProperties
+            = { @"ToPingFilePath=", @"PingDelay=", @"IsPingingOnAppStart=", @"ToScriptFilePath=" };
+        private readonly string[] settingsDefaultValues = { @"ping.txt", "3", @"false", "" };
 
         private delegate bool ValidationMethod(string value);
         private readonly ValidationMethod[] AreSettingsValuesValid;
@@ -30,35 +30,69 @@ namespace Ping_Your_HDD
         private StreamReader streamReader;
         private StreamWriter streamWriter;
 
-        private Thread pingTread;
+        private Thread pingThread;
 
+        private bool isStarted = false;
         private bool isFileCreatingError = false;
         private bool isFileWritingError = false;
         private bool isFileReadingError = false;
 
-        public Model()
+        private string toPingFilePath;
+        public string ToPingFilePath
         {
-            AreSettingsValuesValid = new ValidationMethod[] { IsToPingFilePathValueValid, IsPingDelayValueValid, IsPingingOnAppStartValueValid };
+            get => toPingFilePath;
+            private set
+            {
+                toPingFilePath = value;
+                OnPropertyChanged();
+            }
+        }
 
-            CheckAllArraysLength();
-            CheckSettingsFile();
+        private int pingDelay;
+        public int PingDelay
+        {
+            get => pingDelay;
+            private set
+            {
+                pingDelay = value;
+                OnPropertyChanged();
+            }
+        }
 
-            pingTread = new Thread(new ThreadStart(Ping));
-            pingTread.Start();
+        private bool isPingingOnAppStart = false;
+        public bool IsPingingOnAppStart
+        {
+            get => isPingingOnAppStart;
+            private set
+            {
+                isPingingOnAppStart = value;
+                OnPropertyChanged();
+            }
+        }
 
-            if(IsPingingOnAppStart)
-                TooglePingState();
+        private bool isPinging;
+        public bool IsPinging
+        {
+            get => isPinging;
+            private set
+            {
+                isPinging = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private string toScriptFilePath;
+        public string ToScriptFilePath
+        {
+            get => toScriptFilePath;
+            private set
+            {
+                toScriptFilePath = value;
+                OnPropertyChanged();
+            }
         }
 
         private bool IsClosingApp { get; set; } = false;
-
-        public bool IsPinging { get; private set; } = false;
-        
-        public string ToPingFilePath { get; private set; }
-
-        public int PingDelay { get; private set; }
-        
-        public bool IsPingingOnAppStart { get; private set; } = false;
 
         public bool IsFileCreatingError
         {
@@ -90,14 +124,43 @@ namespace Ping_Your_HDD
             }
         }
 
+        public Model()
+        {
+            AreSettingsValuesValid = new ValidationMethod[]
+            {
+                IsToFilePathValid,
+                IsPingDelayValid,
+                IsPingingOnAppStartValueValid,
+                IsRealOrEmptyToFilePathValid,
+            };
+            CheckAllArraysLength();
+        }
+
+        public void Start()
+        {
+            if (!isStarted)
+            {
+                CheckSettingsFile();
+                IsPinging = false;
+                RunScript();
+                pingThread = new Thread(new ThreadStart(Ping));
+                pingThread.Start();
+
+                if (IsPingingOnAppStart)
+                    TooglePingState();
+
+                isStarted = true;
+            }
+        }
+
         public bool IsIOError() => IsFileCreatingError | IsFileWritingError | IsFileReadingError;
 
         public void TooglePingState()
         {
             IsPinging = !IsPinging;
 
-            if (pingTread.IsAlive)
-                pingTread.Interrupt();
+            if (pingThread.IsAlive)
+                pingThread.Interrupt();
         }
 
         private void Ping()
@@ -109,7 +172,6 @@ namespace Ping_Your_HDD
             while (!IsClosingApp && !IsIOError())
             {
                 pingDelay = PingDelay * 1000;
-
                 ThreadDelay(Timeout.Infinite);
 
                 if (IsPinging && !File.Exists(ToPingFilePath))
@@ -123,9 +185,7 @@ namespace Ping_Your_HDD
                         lineCounter = 0;
                     }
                     else
-                    {
                         appendLine = true;
-                    }
 
                     WritePingFile(ToPingFilePath, appendLine);
                     lineCounter++;
@@ -140,7 +200,7 @@ namespace Ping_Your_HDD
                 {
                     Thread.Sleep(delay);
                 }
-                catch (ThreadInterruptedException e) { }
+                catch (ThreadInterruptedException) { }
             }
 
             void WritePingFile(string toPingFilePath, bool appendLine)
@@ -148,10 +208,9 @@ namespace Ping_Your_HDD
                 try
                 {
                     streamWriter = new StreamWriter(toPingFilePath, appendLine);
-
                     streamWriter.WriteLine(DateTime.Now);
                 }
-                catch (IOException e)
+                catch (IOException)
                 {
                     IsFileWritingError = true;
                 }
@@ -162,32 +221,28 @@ namespace Ping_Your_HDD
             }
         }
 
-        private bool IsToPingFilePathValueValid(string toFilePathValue)
+        private bool IsToFilePathValid(string toFilePath)
         {
             foreach (var forbiddenSymbol in pathNameForbiddenSymbols)
-                if (toFilePathValue.Contains(forbiddenSymbol))
+                if (toFilePath.Contains(forbiddenSymbol))
                     return false;
 
-            int indexOfFileName = IndexOfFileName(toFilePathValue);
+            int indexOfFileName = IndexOfFileName(toFilePath);
 
             if (indexOfFileName >= 0)
             {
-                string toDirectoryPath = toFilePathValue[..indexOfFileName];
-                string fileName = toFilePathValue[indexOfFileName..];
+                string toDirectoryPath = toFilePath[..indexOfFileName];
+                string fileName = toFilePath[indexOfFileName..];
 
                 foreach (var forbiddenSymbol in fileNameForbiddenSymbols)
                     if (fileName.Contains(forbiddenSymbol))
                         return false;
 
                 if (toDirectoryPath == "")
-                {
                     toDirectoryPath = @"\";
-                }
 
                 if (Directory.Exists(toDirectoryPath))
-                {
                     return true;
-                }
             }
 
             return false;
@@ -198,48 +253,32 @@ namespace Ping_Your_HDD
                 int indexOfLastBackSlash = toFilePath.LastIndexOf(@"\");
 
                 if (indexOfLastDot < 0 || indexOfLastDot < indexOfLastBackSlash || (toFilePath.Length - indexOfLastDot) < 2)
-                {
                     return -1;
-                }
                 else
-                {
                     return indexOfLastBackSlash + 1;
-                }
             }
         }
 
-        private bool IsPingDelayValueValid(string delayValue)
-        {
-            int parsed;
+        private bool IsPingDelayValid(string delayValue)
+            => !(!int.TryParse(delayValue, out int parsed) || parsed < 3 || parsed > 3600);
 
-            if (!int.TryParse(delayValue, out parsed) || parsed < 3 || parsed > 3600)
-            {
-                return false;
-            }
-            else
-            {
-                return true;
-            }
-        }
-        
         private bool IsPingingOnAppStartValueValid(string value)
+            => value.ToLower() == "true" || value.ToLower() == "false";
+
+        private bool IsRealOrEmptyToFilePathValid(string toFilePath)
         {
-            if (value.ToLower() == "true" || value.ToLower() == "false")
-            {
+            if (string.IsNullOrEmpty(toFilePath))
                 return true;
-            }
             else
-            {
-                return false;
-            }
+                return IsToFilePathValid(toFilePath);
         }
 
         private void CheckAllArraysLength()
         {
-            if (settingsProperties.Length != propertiesQuantities || settingsDefaultValues.Length != propertiesQuantities || AreSettingsValuesValid.Length != propertiesQuantities)
-            {
+            if (settingsProperties.Length != propertiesQuantities
+                || settingsDefaultValues.Length != propertiesQuantities
+                || AreSettingsValuesValid.Length != propertiesQuantities)
                 throw new ArgumentException("Not all quantities are equal.");
-            }
         }
 
         private void CheckSettingsFile ()
@@ -248,10 +287,9 @@ namespace Ping_Your_HDD
                 CreateFile(toSettingsFilePath);
 
             string[] fromSettingsValues = new string[propertiesQuantities];
+
             for (int i = 0; i < propertiesQuantities; i++)
-            {
                 fromSettingsValues[i] = "";
-            }
 
 #nullable enable
             string? fromSettingsValue;
@@ -261,38 +299,34 @@ namespace Ping_Your_HDD
                 fromSettingsValue = GetFromSettingsFileValue(settingsProperties[i]);
 
                 if (fromSettingsValue != null && AreSettingsValuesValid[i](fromSettingsValue))
-                {
                     fromSettingsValues[i] = fromSettingsValue;
-                }
             }
 #nullable disable
 
             bool areFromSettingsValuesValid = true;
 
             foreach (var item in fromSettingsValues)
-            {
                 if (item.Length == 0)
                 {
                     areFromSettingsValuesValid = false;
                     break;
                 }
-            }
 
             if (areFromSettingsValuesValid)
-            {
                 SetPublicProperties(fromSettingsValues);
-            }
             else
-            {
                 SetSettingsValues(settingsDefaultValues);
-            }
         }
 
-        public void CheckFromViewSettingsValues(string toPingFilePathValue, string pingDelayValue, string isPingingOnAppStartValue)
+        public void SetFromViewSettings(string toPingFilePath, string pingDelay, string isPingingOnAppStart, string toScriptFilePath)
         {
-            if (IsToPingFilePathValueValid(toPingFilePathValue) && IsPingDelayValueValid(pingDelayValue) && IsPingingOnAppStartValueValid(isPingingOnAppStartValue))
+            if (IsToFilePathValid(toPingFilePath)
+                && IsPingDelayValid(pingDelay)
+                && IsPingingOnAppStartValueValid(isPingingOnAppStart)
+                && IsRealOrEmptyToFilePathValid(toScriptFilePath))
             {
-                string[] fromViewSettingsValues = new string[propertiesQuantities] { toPingFilePathValue, pingDelayValue, isPingingOnAppStartValue };
+                string[] fromViewSettingsValues
+                    = new string[propertiesQuantities] { toPingFilePath, pingDelay, isPingingOnAppStart, toScriptFilePath };
                 SetSettingsValues(fromViewSettingsValues);
             }
         }
@@ -303,7 +337,7 @@ namespace Ping_Your_HDD
             {
                 using (var stream = File.Create(toFilePath)) { };
             }
-            catch (IOException e)
+            catch (IOException)
             {
                 IsFileCreatingError = true;
             }
@@ -327,7 +361,7 @@ namespace Ping_Your_HDD
                 }
                 while (!textLine.StartsWith(propertyName));
             }
-            catch (IOException e)
+            catch (IOException)
             {
                 IsFileReadingError = true;
             }
@@ -337,9 +371,7 @@ namespace Ping_Your_HDD
             }
                             
             if (textLine != null && textLine.Length > propertyName.Length)
-            {
                 textLine = textLine.Replace(propertyName, "");
-            }
 
             return textLine;
         }
@@ -354,7 +386,7 @@ namespace Ping_Your_HDD
                 for (int i = 0; i < propertiesQuantities; i++)
                     streamWriter.WriteLine(settingsProperties[i] + settingsValues[i]);
             }
-            catch (IOException e)
+            catch (IOException)
             {
                 IsFileWritingError = true;
             }
@@ -371,18 +403,32 @@ namespace Ping_Your_HDD
             ToPingFilePath = values[0];
             PingDelay = Convert.ToInt32(values[1]);
             IsPingingOnAppStart = Convert.ToBoolean(values[2]);
+            ToScriptFilePath = values[3];
+        }
+
+        public void RunScript()
+        {
+            if (!string.IsNullOrEmpty(ToScriptFilePath))
+            {
+                Process process = new Process();
+                process.StartInfo.FileName = ToScriptFilePath;
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.CreateNoWindow = true;
+                process.Start();
+            }
         }
 
         public void CloseApp()
         {
             IsClosingApp = true;
 
-            if (pingTread.IsAlive)
-                pingTread.Interrupt();
+            if (pingThread.IsAlive)
+                pingThread.Interrupt();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private void OnPropertyChanged([CallerMemberName] string propertyName = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        private void OnPropertyChanged([CallerMemberName] string propertyName = "")
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }
